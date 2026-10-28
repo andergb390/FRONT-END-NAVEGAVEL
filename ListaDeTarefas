@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Lista de Tarefas</title>
+    <style>
+        /* === ESTILOS === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 550px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        h1 {
+            text-align: center;
+            color: #4f46e5;
+            margin-bottom: 2rem;
+            font-size: 1.8rem;
+        }
+
+        .adicionar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        input {
+            flex: 1;
+            padding: 0.9rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+
+        button {
+            padding: 0.9rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-adicionar {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .btn-adicionar:hover {
+            background: #4338ca;
+            transform: scale(1.03);
+        }
+
+        .lista {
+            list-style: none;
+        }
+
+        .tarefa {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 10px;
+            margin-bottom: 0.8rem;
+            border-left: 4px solid #4f46e5;
+            transition: all 0.3s;
+        }
+
+        .tarefa.concluida {
+            opacity: 0.7;
+            border-left-color: #10b981;
+        }
+
+        .tarefa.concluida .texto {
+            text-decoration: line-through;
+            color: #6b7280;
+        }
+
+        .esquerda {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: #10b981;
+        }
+
+        .texto {
+            font-size: 1rem;
+            color: #1f2937;
+        }
+
+        .btn-excluir {
+            background: #ef4444;
+            color: white;
+            padding: 0.5rem 0.8rem;
+            font-size: 0.85rem;
+        }
+
+        .btn-excluir:hover {
+            background: #dc2626;
+        }
+
+        .vazia {
+            text-align: center;
+            padding: 2rem;
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .resumo {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1.5rem;
+            }
+            .adicionar {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Minha Lista de Tarefas</h1>
+
+        <!-- Área de Adicionar -->
+        <div class="adicionar">
+            <input type="text" id="entrada" placeholder="Digite uma nova tarefa..." maxlength="60">
+            <button class="btn-adicionar" onclick="adicionarTarefa()">Adicionar</button>
+        </div>
+
+        <!-- Lista -->
+        <ul id="lista" class="lista">
+            <!-- Tarefas aparecem aqui -->
+        </ul>
+
+        <!-- Resumo -->
+        <div class="resumo">
+            <p>Total: <span id="total">0</span> tarefas</p>
+            <p>Concluídas: <span id="concluidas">0</span></p>
+        </div>
+    </div>
+
+    <script>
+        const lista = document.getElementById('lista');
+        const entrada = document.getElementById('entrada');
+        const totalEl = document.getElementById('total');
+        const concluidasEl = document.getElementById('concluidas');
+
+        // Carregar tarefas salvas
+        let tarefas = JSON.parse(localStorage.getItem('tarefas')) || [];
+
+        function salvar() {
+            localStorage.setItem('tarefas', JSON.stringify(tarefas));
+        }
+
+        function atualizarResumo() {
+            totalEl.textContent = tarefas.length;
+            concluidasEl.textContent = tarefas.filter(t => t.concluida).length;
+        }
+
+        function renderizar() {
+            lista.innerHTML = '';
+            
+            if (tarefas.length === 0) {
+                lista.innerHTML = '<li class="vazia">Nenhuma tarefa ainda. Adicione acima! ✏️</li>';
+                atualizarResumo();
+                return;
+            }
+
+            tarefas.forEach((tarefa, indice) => {
+                const li = document.createElement('li');
+                li.className = `tarefa ${tarefa.concluida ? 'concluida' : ''}`;
+                li.innerHTML = `
+                    <div class="esquerda">
+                        <input type="checkbox" ${tarefa.concluida ? 'checked' : ''} 
+                            onchange="alternar(${indice})">
+                        <span class="texto">${tarefa.texto}</span>
+                    </div>
+                    <button class="btn-excluir" onclick="remover(${indice})">Excluir</button>
+                `;
+                lista.appendChild(li);
+            });
+
+            atualizarResumo();
+        }
+
+        function adicionarTarefa() {
+            const texto = entrada.value.trim();
+            if (!texto) {
+                alert('Digite uma tarefa! 📝');
+                entrada.focus();
+                return;
+            }
+            
+            tarefas.unshift({ texto, concluida: false });
+            entrada.value = '';
+            salvar();
+            renderizar();
+        }
+
+        function alternar(indice) {
+            tarefas[indice].concluida = !tarefas[indice].concluida;
+            salvar();
+            renderizar();
+        }
+
+        function remover(indice) {
+            if (confirm('Remover essa tarefa?')) {
+                tarefas.splice(indice, 1);
+                salvar();
+                renderizar();
+            }
+        }
+
+        // Permitir adicionar com Enter
+        entrada.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') adicionarTarefa();
+        });
+
+        // Inicializar
+        renderizar();
+    </script>
+</body>
+</html>
